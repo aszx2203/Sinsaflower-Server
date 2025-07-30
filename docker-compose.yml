@@ -1,0 +1,52 @@
+services:
+  # Spring Boot 백엔드
+  backend:
+    build: .
+    container_name: sinsaflower-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_SHOW_SQL=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sinsaflower-network
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs  # 로그 파일 공유
+
+  # PostgreSQL 데이터베이스
+  postgres:
+    image: postgres:15-alpine
+    container_name: sinsaflower-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # 데이터 영속성
+      - ./docker/init-db:/docker-entrypoint-initdb.d  # 초기 스크립트
+    networks:
+      - sinsaflower-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  sinsaflower-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local 
