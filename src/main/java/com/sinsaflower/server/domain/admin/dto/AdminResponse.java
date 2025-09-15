@@ -1,6 +1,7 @@
 package com.sinsaflower.server.domain.admin.dto;
 
 import com.sinsaflower.server.domain.admin.entity.Admin;
+import com.sinsaflower.server.domain.admin.entity.Admin.AdminStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,8 +35,17 @@ public class AdminResponse {
     @Schema(description = "관리자 이름", example = "시스템 관리자", required = true)
     private String name;
     
+    @Schema(description = "관리자 상태", example = "ACTIVE", required = true)
+    private AdminStatus status;
+    
+    @Schema(description = "관리자 상태 설명", example = "활성", required = true)
+    private String statusDescription;
+
     @Schema(description = "관리자 계정 생성일시", example = "2024-01-10T09:00:00", required = true)
     private LocalDateTime createdAt;
+    
+    @Schema(description = "마지막 수정일시", example = "2024-01-15T15:30:00")
+    private LocalDateTime updatedAt;
     
     @Schema(description = "마지막 로그인 일시", example = "2024-01-15T15:30:00")
     private LocalDateTime lastLoginAt;
@@ -45,7 +55,10 @@ public class AdminResponse {
             .id(admin.getId())
             .loginId(admin.getLoginId())
             .name(admin.getName())
+            .status(admin.getStatus())
+            .statusDescription(admin.getStatus().getDescription())
             .createdAt(admin.getCreatedAt())
+            .updatedAt(admin.getUpdatedAt())
             .lastLoginAt(admin.getLastLoginAt())
             .build();
     }

@@ -3,17 +3,20 @@ package com.sinsaflower.server.domain.admin.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.sinsaflower.server.domain.common.BaseTimeEntity;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "admin", indexes = {
-    @Index(name = "idx_admin_login_id", columnList = "loginId")
+    @Index(name = "idx_admin_login_id", columnList = "loginId"),
+    @Index(name = "idx_admin_status", columnList = "status")
 })
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Admin {
+public class Admin extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,20 +31,13 @@ public class Admin {
     @Column(length = 50, nullable = false)
     private String name;
 
-    // 감사 정보
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private LocalDateTime lastLoginAt;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    @Builder.Default
+    private AdminStatus status = AdminStatus.ACTIVE; // 관리자 상태
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = updatedAt = LocalDateTime.now();
-    }
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    private LocalDateTime lastLoginAt; // 마지막 로그인 일시
 
     // 비즈니스 메서드
     public void encodePassword(PasswordEncoder passwordEncoder) {
@@ -50,5 +46,34 @@ public class Admin {
 
     public void updateLastLogin() {
         this.lastLoginAt = LocalDateTime.now();
+    }
+
+    public boolean isActive() {
+        return status == AdminStatus.ACTIVE;
+    }
+
+    public void activate() {
+        this.status = AdminStatus.ACTIVE;
+    }
+
+    public void deactivate() {
+        this.status = AdminStatus.INACTIVE;
+    }
+
+    // 관리자 상태 enum
+    public enum AdminStatus {
+        ACTIVE("활성"),
+        INACTIVE("비활성"),
+        SUSPENDED("정지");
+
+        private final String description;
+
+        AdminStatus(String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
     }
 } 
