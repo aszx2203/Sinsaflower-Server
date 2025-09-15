@@ -21,15 +21,15 @@ public interface MemberBusinessProfileRepository extends JpaRepository<MemberBus
     // 승인 상태로 조회
     List<MemberBusinessProfile> findByApprovalStatus(MemberBusinessProfile.ApprovalStatus approvalStatus);
     
-    // 승인 대기 중인 사업자 조회
-    List<MemberBusinessProfile> findByApprovalStatusOrderByCreatedAtAsc(MemberBusinessProfile.ApprovalStatus approvalStatus);
+    // TODO: 필요시 다시 추가
+    // List<MemberBusinessProfile> findByApprovalStatusOrderByCreatedAtAsc(MemberBusinessProfile.ApprovalStatus approvalStatus);
     
     // 지역별 사업자 조회 (사업장 주소 기준)
     @Query("SELECT mbp FROM MemberBusinessProfile mbp " +
            "WHERE mbp.officeAddress.sido = :sido " +
            "AND mbp.officeAddress.sigungu = :sigungu " +
-           "AND mbp.approvalStatus = 'APPROVED'")
-    List<MemberBusinessProfile> findByOfficeAddressRegion(@Param("sido") String sido, @Param("sigungu") String sigungu);
+           "AND mbp.approvalStatus = :approvalStatus")
+    List<MemberBusinessProfile> findByOfficeAddressRegion(@Param("sido") String sido, @Param("sigungu") String sigungu, @Param("approvalStatus") MemberBusinessProfile.ApprovalStatus approvalStatus);
     
     // 법인명으로 검색
     List<MemberBusinessProfile> findByCorpNameContainingIgnoreCase(String corpName);

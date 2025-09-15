@@ -1,22 +1,28 @@
 package com.sinsaflower.server.domain.member.service;
 
+import com.sinsaflower.server.domain.member.constants.MemberConstants;
 import com.sinsaflower.server.domain.member.dto.MemberResponse;
 import com.sinsaflower.server.domain.member.dto.MemberSignupRequest;
 import com.sinsaflower.server.domain.member.dto.MemberSignupRequest.ActivityRegionRequest;
 import com.sinsaflower.server.domain.member.entity.*;
+import com.sinsaflower.server.domain.member.entity.Member.MemberStatus;
 import com.sinsaflower.server.domain.member.repository.*;
 import com.sinsaflower.server.domain.product.entity.MemberProductPrice;
 import com.sinsaflower.server.domain.product.repository.MemberProductPriceRepository;
 import com.sinsaflower.server.domain.common.Address;
+import com.sinsaflower.server.global.exception.ResourceNotFoundException;
 import com.sinsaflower.server.global.service.FileUploadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -100,6 +106,17 @@ public class MemberService {
     @Transactional(readOnly = true)
     public boolean isBusinessNumberDuplicate(String businessNumber) {
         return businessProfileRepository.existsByBusinessNumber(businessNumber);
+    }
+
+    /**
+     * 승인 대기 중인 멤버 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<MemberResponse> getPendingMembers() {
+        List<Member> pendingMembers = memberRepository.findByStatus(Member.MemberStatus.PENDING);
+        return pendingMembers.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -293,5 +310,113 @@ public class MemberService {
                 .createdAt(member.getCreatedAt())
                 .lastLoginAt(member.getLastLoginAt())
                 .build();
+    }
+
+    /**
+     * 화환명으로 회원 검색
+     */
+    public Page<MemberResponse> searchMembersByName(String name, Pageable pageable) {
+        Page<Member> members = memberRepository.findByNameContaining(name, pageable);
+        return members.map(this::convertToResponse);
+    }
+
+    /**
+     * 지역별 회원 검색
+     */
+    public Page<MemberResponse> searchMembersByRegion(String sido, String sigungu, String eupmyeondong, Pageable pageable) {
+        Page<Member> members;
+        
+        if (eupmyeondong != null && !eupmyeondong.trim().isEmpty()) {
+            // 시도 + 시군구 + 읍면동 검색
+            members = memberRepository.findByActivityRegionSidoAndSigunguAndEupmyeondong(sido, sigungu, eupmyeondong, pageable);
+        } else if (sigungu != null && !sigungu.trim().isEmpty()) {
+            // 시도 + 시군구 검색
+            members = memberRepository.findByActivityRegionSidoAndSigungu(sido, sigungu, pageable);
+        } else {
+            // 시도만 검색
+            members = memberRepository.findByActivityRegionSido(sido, pageable);
+        }
+        
+        return members.map(this::convertToResponse);
+    }
+
+    /**
+     * 취급 상품별 회원 검색
+     */
+    public Page<MemberResponse> searchMembersByProduct(String productName, Pageable pageable) {
+        Page<Member> members = memberRepository.findByHandlingProductName(productName, pageable);
+        return members.map(this::convertToResponse);
+    }
+
+    /**
+     * 복합 검색 (화환명 + 지역 + 상품)
+     */
+    public Page<MemberResponse> searchMembersCombined(String name, String sido, String sigungu, String productName, Pageable pageable) {
+        // null이나 빈 문자열을 null로 정규화
+        String normalizedName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+        String normalizedSido = (sido != null && !sido.trim().isEmpty()) ? sido.trim() : null;
+        String normalizedSigungu = (sigungu != null && !sigungu.trim().isEmpty()) ? sigungu.trim() : null;
+        String normalizedProductName = (productName != null && !productName.trim().isEmpty()) ? productName.trim() : null;
+        
+        Page<Member> members = memberRepository.findByCombinedSearch(
+            normalizedName, normalizedSido, normalizedSigungu, normalizedProductName, pageable);
+        return members.map(this::convertToResponse);
+    }
+
+    /**
+     * 지역별 회원 수 통계
+     */
+    public Map<String, Long> getMemberStatisticsByRegion() {
+        List<Object[]> results = memberRepository.countMembersByRegion();
+        return results.stream()
+                .collect(Collectors.toMap(
+                    result -> (String) result[0],  // sido
+                    result -> (Long) result[1]     // count
+                ));
+    }
+
+    /**
+     * 취급 상품별 회원 수 통계
+     */
+    public Map<String, Long> getMemberStatisticsByProduct() {
+        List<Object[]> results = memberRepository.countMembersByProduct();
+        return results.stream()
+                .collect(Collectors.toMap(
+                    result -> (String) result[0],  // productName
+                    result -> (Long) result[1]     // count
+                ));
+    }
+
+    /**
+     * 비밀번호 변경 (본인만)
+     */
+    @Transactional
+    public void changePassword(Long memberId, String currentPassword, String newPassword) {
+        log.info("비밀번호 변경 요청: {}", memberId);
+
+        Member member = memberRepository.findById(memberId)
+                .filter(m -> !m.getIsDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(MemberConstants.Messages.MEMBER_NOT_FOUND + ": " + memberId));
+
+        member.changePassword(currentPassword, newPassword, passwordEncoder);
+        memberRepository.save(member);
+
+        log.info("비밀번호 변경 완료: {}", memberId);
+    }
+
+    /**
+     * 모든 활성 회원 조회 (관리자용)
+     */
+    public Page<MemberResponse> getAllActiveMembers(Pageable pageable) {
+        Page<Member> members = memberRepository.findAllActive(pageable);
+        return members.map(this::convertToResponse);
+    }
+
+    /**
+     * 상태별 회원 조회 (관리자용)
+     */
+    public Page<MemberResponse> getMembersByStatus(MemberStatus status, Pageable pageable) {
+        Page<Member> members = memberRepository.findByStatus(status, pageable);
+        return members.map(this::convertToResponse);
     }
 } 

@@ -5,7 +5,9 @@ import lombok.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.sinsaflower.server.domain.common.BaseTimeEntity;
+import com.sinsaflower.server.domain.member.constants.MemberConstants;
 import com.sinsaflower.server.domain.product.entity.MemberProductPrice;
+import com.sinsaflower.server.global.exception.InvalidRequestException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -75,8 +77,125 @@ public class Member extends BaseTimeEntity {
         return status == MemberStatus.ACTIVE;
     }
 
+    public boolean isPending() {
+        return status == MemberStatus.PENDING;
+    }
+
+    public boolean isSuspended() {
+        return status == MemberStatus.SUSPENDED;
+    }
+
+    public boolean isDeleted() {
+        return status == MemberStatus.DELETED;
+    }
+
     public void updateLastLogin() {
         this.lastLoginAt = LocalDateTime.now();
+    }
+
+    /**
+     * 회원 상태 변경 (비즈니스 규칙 검증 포함)
+     */
+    public void updateStatus(MemberStatus newStatus) {
+        if (!isValidStatusTransition(this.status, newStatus)) {
+            throw new InvalidRequestException(MemberConstants.Messages.INVALID_STATUS_TRANSITION);
+        }
+        this.status = newStatus;
+    }
+
+    /**
+     * 회원 승인
+     */
+    public void approve() {
+        if (this.status != MemberStatus.PENDING) {
+            throw new InvalidRequestException("승인 대기 상태의 회원만 승인할 수 있습니다.");
+        }
+        this.status = MemberStatus.ACTIVE;
+    }
+
+    /**
+     * 회원 정지
+     */
+    public void suspend() {
+        if (this.status != MemberStatus.ACTIVE) {
+            throw new InvalidRequestException("활성 상태의 회원만 정지할 수 있습니다.");
+        }
+        this.status = MemberStatus.SUSPENDED;
+    }
+
+    /**
+     * 회원 정지 해제
+     */
+    public void unsuspend() {
+        if (this.status != MemberStatus.SUSPENDED) {
+            throw new InvalidRequestException("정지 상태의 회원만 정지 해제할 수 있습니다.");
+        }
+        this.status = MemberStatus.ACTIVE;
+    }
+
+    /**
+     * 비밀번호 변경 (현재 비밀번호 검증 포함)
+     */
+    public void changePassword(String currentPassword, String newPassword, PasswordEncoder passwordEncoder) {
+        if (!passwordEncoder.matches(currentPassword, this.password)) {
+            throw new InvalidRequestException(MemberConstants.Messages.INVALID_PASSWORD);
+        }
+        this.password = passwordEncoder.encode(newPassword);
+    }
+
+    /**
+     * 회원 정보 유효성 검증
+     */
+    public void validateMemberInfo() {
+        if (loginId == null || loginId.length() < MemberConstants.Validation.MIN_LOGIN_ID_LENGTH 
+            || loginId.length() > MemberConstants.Validation.MAX_LOGIN_ID_LENGTH) {
+            throw new InvalidRequestException(MemberConstants.Messages.INVALID_LOGIN_ID_LENGTH);
+        }
+        
+        if (name == null || name.length() < MemberConstants.Validation.MIN_NAME_LENGTH 
+            || name.length() > MemberConstants.Validation.MAX_NAME_LENGTH) {
+            throw new InvalidRequestException(MemberConstants.Messages.INVALID_NAME_LENGTH);
+        }
+        
+        if (mobile == null || mobile.length() != MemberConstants.Validation.MOBILE_LENGTH) {
+            throw new InvalidRequestException(MemberConstants.Messages.INVALID_MOBILE_FORMAT);
+        }
+    }
+
+    /**
+     * 로그인 가능 여부 확인
+     */
+    public boolean canLogin() {
+        return isActive() && !getIsDeleted();
+    }
+
+    /**
+     * 수정 가능 여부 확인
+     */
+    public boolean canBeModified() {
+        return (isActive() || isPending()) && !getIsDeleted();
+    }
+
+    // 소프트 삭제 처리
+    public void softDelete(String deletedBy) {
+        this.status = MemberStatus.DELETED;
+        super.softDelete(deletedBy);
+    }
+
+    /**
+     * 상태 변경 유효성 검증
+     */
+    private boolean isValidStatusTransition(MemberStatus currentStatus, MemberStatus newStatus) {
+        if (currentStatus == newStatus) {
+            return false; // 동일한 상태로 변경 불가
+        }
+        
+        return switch (currentStatus) {
+            case PENDING -> newStatus == MemberStatus.ACTIVE || newStatus == MemberStatus.DELETED;
+            case ACTIVE -> newStatus == MemberStatus.SUSPENDED || newStatus == MemberStatus.DELETED;
+            case SUSPENDED -> newStatus == MemberStatus.ACTIVE || newStatus == MemberStatus.DELETED;
+            case DELETED -> false; // 삭제된 회원은 상태 변경 불가
+        };
     }
     
     public enum MemberStatus {

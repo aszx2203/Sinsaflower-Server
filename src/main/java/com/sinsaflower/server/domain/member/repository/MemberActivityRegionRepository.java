@@ -14,9 +14,6 @@ public interface MemberActivityRegionRepository extends JpaRepository<MemberActi
     // 활성 활동 지역만 조회
     List<MemberActivityRegion> findByMemberIdAndIsActiveTrue(Long memberId);
     
-    // 주 활동 지역 조회
-    Optional<MemberActivityRegion> findByMemberIdAndIsPrimaryTrue(Long memberId);
-    
     // 특정 지역의 활동 회원 조회
     List<MemberActivityRegion> findBySidoAndSigunguAndIsActiveTrue(String sido, String sigungu);
     
