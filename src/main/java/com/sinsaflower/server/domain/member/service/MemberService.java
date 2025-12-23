@@ -1,8 +1,7 @@
 package com.sinsaflower.server.domain.member.service;
 
 import com.sinsaflower.server.domain.member.constants.MemberConstants;
-import com.sinsaflower.server.domain.member.dto.MemberResponse;
-import com.sinsaflower.server.domain.member.dto.MemberSignupRequest;
+import com.sinsaflower.server.domain.member.dto.*;
 import com.sinsaflower.server.domain.member.dto.MemberSignupRequest.ActivityRegionRequest;
 import com.sinsaflower.server.domain.member.entity.*;
 import com.sinsaflower.server.domain.member.entity.Member.MemberStatus;
@@ -15,12 +14,14 @@ import com.sinsaflower.server.global.service.FileUploadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -338,16 +339,75 @@ public class MemberService {
     /**
      * 복합 검색 (화환명 + 지역 + 상품)
      */
-    public Page<MemberResponse> searchMembersCombined(String name, String sido, String sigungu, String productName, Pageable pageable) {
-        // null이나 빈 문자열을 null로 정규화
-        String normalizedName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
-        String normalizedSido = (sido != null && !sido.trim().isEmpty()) ? sido.trim() : null;
-        String normalizedSigungu = (sigungu != null && !sigungu.trim().isEmpty()) ? sigungu.trim() : null;
-        String normalizedProductName = (productName != null && !productName.trim().isEmpty()) ? productName.trim() : null;
-        
-        Page<Member> members = memberRepository.findByCombinedSearch(
-            normalizedName, normalizedSido, normalizedSigungu, normalizedProductName, pageable);
-        return members.map(this::convertToResponse);
+    @Transactional(readOnly = true)
+    public Page<MemberSearchResponse> searchMembersCombined(
+            String name,
+            String sido,
+            String sigungu,
+            Pageable pageable
+    ) {
+
+        Page<MemberSearchBaseDto> basePage =
+                memberRepository.findByCombinedSearch(name, sido, sigungu, pageable);
+
+        if (basePage.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        List<Long> memberIds = basePage.getContent()
+                .stream()
+                .map(MemberSearchBaseDto::getMemberId)
+                .toList();
+
+        // 결과 컨테이너
+        Map<Long, MemberSearchResponse> resultMap = new LinkedHashMap<>();
+
+        // 1️⃣ 기본 정보 세팅
+        for (var b : basePage) {
+            MemberSearchResponse r = new MemberSearchResponse();
+            r.setId(b.getMemberId());
+            r.setName(b.getName());
+            r.setPhone(b.getPhone());
+            r.setRegion(b.getRegion());
+            r.setMemo(b.getMemo());
+            r.setRank(b.getRank());
+            resultMap.put(b.getMemberId(), r);
+        }
+
+        // 2️⃣ 가격 세팅 (기존 Response DTO 사용)
+        productPriceRepository.findProductPrices(memberIds).forEach(p -> {
+            MemberSearchResponse r = resultMap.get(p.getMemberId());
+            r.getPrices().add(
+                    MemberProductPriceResponse.builder()
+                            .categoryName(p.getCategoryName())
+                            .price(p.getPrice())
+                            .isAvailable(p.getIsAvailable())
+                            .build()
+            );
+        });
+
+        // 3️⃣ 태그 계산 (비즈니스 룰)
+        resultMap.values().forEach(r -> {
+            if (r.getPrices().stream()
+                    .anyMatch(p -> "과일".equals(p.getCategoryName())
+                            && Boolean.TRUE.equals(p.getIsAvailable()))) {
+                r.getTags().add("과일취급");
+            }
+
+            if ("GOLD".equals(r.getRank())
+                    || "PLATINUM".equals(r.getRank())
+                    || "DIAMOND".equals(r.getRank())) {
+                r.getTags().add("프리미엄");
+            }
+
+            r.getTags().add("신규회원"); // 예시
+        });
+
+        return new PageImpl<>(
+                new ArrayList<>(resultMap.values()),
+                pageable,
+                basePage.getTotalElements()
+        );
     }
 
     /**

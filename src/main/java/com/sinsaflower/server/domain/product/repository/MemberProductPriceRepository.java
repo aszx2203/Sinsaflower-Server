@@ -1,5 +1,6 @@
 package com.sinsaflower.server.domain.product.repository;
 
+import com.sinsaflower.server.domain.member.dto.MemberProductPriceDto;
 import com.sinsaflower.server.domain.product.entity.MemberProductPrice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -60,4 +61,18 @@ public interface MemberProductPriceRepository extends JpaRepository<MemberProduc
     // 특정 지역의 특정 카테고리 회원 조회
     List<MemberProductPrice> findBySidoAndSigunguAndCategoryNameAndIsAvailableTrue(
         String sido, String sigungu, String categoryName);
+
+    @Query("""
+    SELECT new com.sinsaflower.server.domain.member.dto.MemberProductPriceDto(
+        p.member.id,
+        p.categoryName,
+        p.price,
+        p.isAvailable
+    )
+    FROM MemberProductPrice p
+    WHERE p.member.id IN :memberIds
+    """)
+    List<MemberProductPriceDto> findProductPrices(
+            @Param("memberIds") List<Long> memberIds
+    );
 } 

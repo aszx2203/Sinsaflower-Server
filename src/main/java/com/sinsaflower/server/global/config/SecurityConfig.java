@@ -53,6 +53,7 @@ public class SecurityConfig {
                 // 공개 API (인증 불필요)
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/signup").permitAll()
+                .requestMatchers("/api/auth/logout").permitAll()
                 .requestMatchers("/api/members/validation/**").permitAll()
                 .requestMatchers("/api/members/signup").permitAll()
                 .requestMatchers("/api/admin/init").permitAll()

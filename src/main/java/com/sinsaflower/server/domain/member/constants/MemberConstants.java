@@ -63,7 +63,8 @@ public final class MemberConstants {
         public static final String MEMBER_DELETED = "회원이 삭제되었습니다.";
         public static final String PASSWORD_UPDATED = "비밀번호가 변경되었습니다.";
         public static final String PROFILE_IMAGE_UPLOADED = "프로필 이미지가 업로드되었습니다.";
-        
+        public static final String DELIVERY_REGION_UPLOADED = "배송설정이 저장되었습니다.";
+
         // 오류 메시지
         public static final String MEMBER_NOT_FOUND = "회원을 찾을 수 없습니다.";
         public static final String DUPLICATE_LOGIN_ID = "이미 사용 중인 로그인 ID입니다.";

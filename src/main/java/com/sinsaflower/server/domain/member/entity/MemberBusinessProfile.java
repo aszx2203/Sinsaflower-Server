@@ -61,6 +61,9 @@ public class MemberBusinessProfile {
     @Column(length = 500)
     private String businessCertFilePath; // 사업자등록증 경로
 
+    @Column(length = 2000)
+    private String memo; // memo
+
     // 계좌 정보는 별도 엔티티로 분리
     @OneToMany(mappedBy = "businessProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default

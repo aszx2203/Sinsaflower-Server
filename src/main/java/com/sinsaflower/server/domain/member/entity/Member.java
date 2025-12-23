@@ -43,6 +43,9 @@ public class Member extends BaseTimeEntity {
     @Column(length = 20, nullable = false)
     private String mobile; // 휴대전화번호
 
+    @Column(length = 2000)
+    private String memo; // memo
+
     @Enumerated(EnumType.STRING)
     @Column(length = 10, nullable = false)
     private MemberStatus status = MemberStatus.PENDING; // 회원 상태
@@ -67,6 +70,10 @@ public class Member extends BaseTimeEntity {
     private List<MemberProductPrice> productPrices = new ArrayList<>(); // 상품 가격
 
     private LocalDateTime lastLoginAt; // 마지막 로그인 일시
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private MemberRank rank = MemberRank.Bronze;
 
     // 비즈니스 메서드
     public void encodePassword(PasswordEncoder passwordEncoder) {
