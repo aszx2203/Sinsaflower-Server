@@ -115,7 +115,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             m.rank
         )
         FROM Member m
-        JOIN m.activityRegions ar
+        JOIN m.activityRegions ar 
+            ON ar.isActive = true
         LEFT JOIN m.businessProfile bp
         WHERE m.status = com.sinsaflower.server.domain.member.entity.Member.MemberStatus.ACTIVE
         AND m.isDeleted = false
