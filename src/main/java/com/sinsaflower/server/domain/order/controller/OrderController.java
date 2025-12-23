@@ -2,15 +2,11 @@ package com.sinsaflower.server.domain.order.controller;
 
 import com.sinsaflower.server.domain.order.dto.OrderCreateRequest;
 import com.sinsaflower.server.domain.order.dto.OrderCreateResponse;
-import com.sinsaflower.server.domain.order.dto.OrderListResponse;
 import com.sinsaflower.server.domain.order.dto.OrderResponse;
-import com.sinsaflower.server.domain.order.dto.OrderSearchRequest;
-import com.sinsaflower.server.domain.order.dto.OrderSummaryResponse;
 import com.sinsaflower.server.domain.order.entity.Order;
 import com.sinsaflower.server.domain.order.entity.Order.OrderStatus;
 import com.sinsaflower.server.domain.order.service.OrderService;
 import com.sinsaflower.server.domain.order.constants.OrderConstants;
-import com.sinsaflower.server.domain.order.util.PagingUtils;
 import com.sinsaflower.server.domain.delivery.entity.Region;
 import com.sinsaflower.server.domain.delivery.repository.RegionRepository;
 import com.sinsaflower.server.global.dto.ApiResponse;
@@ -24,10 +20,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,8 +27,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -63,6 +53,7 @@ public class OrderController {
             
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
+                
         log.info("Creating order for member: {}", userDetails.getUserId());
 
         // DTO -> Entity 변환

@@ -51,8 +51,11 @@ public class SecurityConfig {
             // 권한 설정
             .authorizeHttpRequests(auth -> auth
                 // 공개 API (인증 불필요)
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers("/api/auth/signup").permitAll()
                 .requestMatchers("/api/members/validation/**").permitAll()
+                .requestMatchers("/api/members/signup").permitAll()
+                .requestMatchers("/api/admin/init").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 // SpringDoc OpenAPI 2.8.0 호환 경로들
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()

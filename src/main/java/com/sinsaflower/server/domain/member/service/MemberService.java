@@ -300,16 +300,7 @@ public class MemberService {
      * 응답 DTO 변환
      */
     private MemberResponse convertToResponse(Member member) {
-        return MemberResponse.builder()
-                .id(member.getId())
-                .loginId(member.getLoginId())
-                .name(member.getName())
-                .nickname(member.getNickname())
-                .mobile(member.getMobile())
-                .status(member.getStatus().getDescription())
-                .createdAt(member.getCreatedAt())
-                .lastLoginAt(member.getLastLoginAt())
-                .build();
+        return MemberResponse.from(member);
     }
 
     /**
@@ -325,12 +316,8 @@ public class MemberService {
      */
     public Page<MemberResponse> searchMembersByRegion(String sido, String sigungu, String eupmyeondong, Pageable pageable) {
         Page<Member> members;
-        
-        if (eupmyeondong != null && !eupmyeondong.trim().isEmpty()) {
-            // 시도 + 시군구 + 읍면동 검색
-            members = memberRepository.findByActivityRegionSidoAndSigunguAndEupmyeondong(sido, sigungu, eupmyeondong, pageable);
-        } else if (sigungu != null && !sigungu.trim().isEmpty()) {
-            // 시도 + 시군구 검색
+
+        if (sigungu != null && !sigungu.trim().isEmpty()) {
             members = memberRepository.findByActivityRegionSidoAndSigungu(sido, sigungu, pageable);
         } else {
             // 시도만 검색
@@ -382,7 +369,7 @@ public class MemberService {
         List<Object[]> results = memberRepository.countMembersByProduct();
         return results.stream()
                 .collect(Collectors.toMap(
-                    result -> (String) result[0],  // productName
+                    result -> result[0].toString(), 
                     result -> (Long) result[1]     // count
                 ));
     }
@@ -409,6 +396,17 @@ public class MemberService {
      */
     public Page<MemberResponse> getAllActiveMembers(Pageable pageable) {
         Page<Member> members = memberRepository.findAllActive(pageable);
+        
+        // --- 디버깅 로그 추가 ---
+        members.getContent().forEach(member -> {
+            if (member.getBusinessProfile() == null) {
+                log.info("Member ID {}: BusinessProfile is NULL after fetch.", member.getId());
+            } else {
+                log.info("Member ID {}: BusinessProfile FOUND. CorpName: {}", member.getId(), member.getBusinessProfile().getCorpName());
+            }
+        });
+        // ----------------------
+
         return members.map(this::convertToResponse);
     }
 

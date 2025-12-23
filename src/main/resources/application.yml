@@ -3,7 +3,7 @@ spring:
     name: sinsaflower-server
   
   config:
-    import: optional:file:./application-private.yml
+    import: optional:classpath:application-private.yml
   
   # 데이터베이스 설정 
   datasource:

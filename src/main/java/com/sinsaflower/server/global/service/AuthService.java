@@ -188,6 +188,7 @@ public class AuthService {
             .userId(userDetails.getUserId())
             .username(userDetails.getUsername())
             .userType(userDetails.getUserType())
+            .nickname(userDetails.getNickname())
             .name(userDetails.getName())
             .authorities(userDetails.getAuthorities().stream()
                 .map(auth -> auth.getAuthority())

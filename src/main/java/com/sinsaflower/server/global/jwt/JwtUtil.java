@@ -42,24 +42,21 @@ public class JwtUtil {
     /**
      * Access Token 생성
      */
-    public String generateToken(String username, Collection<? extends GrantedAuthority> authorities, 
-                               String userType, Long userId) {
+    public String generateToken(String username, Collection<? extends GrantedAuthority> authorities, String userType, Long userId) {
         return generateToken(username, authorities, userType, userId, jwtExpiration);
     }
     
     /**
      * Refresh Token 생성
      */
-    public String generateRefreshToken(String username, Collection<? extends GrantedAuthority> authorities, 
-                                      String userType, Long userId) {
+    public String generateRefreshToken(String username, Collection<? extends GrantedAuthority> authorities, String userType, Long userId) {
         return generateToken(username, authorities, userType, userId, refreshExpiration);
     }
     
     /**
      * JWT 토큰 생성 공통 메서드
      */
-    private String generateToken(String username, Collection<? extends GrantedAuthority> authorities, 
-                                String userType, Long userId, int expiration) {
+    private String generateToken(String username, Collection<? extends GrantedAuthority> authorities, String userType, Long userId, int expiration) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
         
@@ -127,6 +124,7 @@ public class JwtUtil {
      * JWT 토큰 유효성 검증
      */
     public boolean validateToken(String token) {
+        log.info("검증할 토큰: '{}'", token); // 전달된 토큰
         try {
             Jwts.parser()
                 .verifyWith(key)

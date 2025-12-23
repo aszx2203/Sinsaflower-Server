@@ -41,6 +41,9 @@ public class AuthResponse {
     
     @Schema(description = "로그인 ID", example = "admin")
     private String username;
+
+    @Schema(description = "사용자 닉네임", example = "어드민 닉네임")
+    private String nickname;
     
     @Schema(description = "사용자 타입", example = "ADMIN", allowableValues = {"ADMIN", "PARTNER"})
     private String userType;

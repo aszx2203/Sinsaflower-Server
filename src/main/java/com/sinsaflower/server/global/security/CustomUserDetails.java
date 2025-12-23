@@ -28,6 +28,7 @@ public class CustomUserDetails implements UserDetails {
     private final String username;
     private final String password;
     private final String name;
+    private final String nickname;
     private final String userType;
     private final boolean enabled;
     private final Collection<? extends GrantedAuthority> authorities;
@@ -38,6 +39,7 @@ public class CustomUserDetails implements UserDetails {
         this.username = admin.getLoginId();
         this.password = admin.getPassword();
         this.name = admin.getName();
+        this.nickname = admin.getName(); // 관리자는 별도 닉네임이 없으므로 name을 사용
         this.userType = USER_TYPE_ADMIN;
         this.enabled = true; // 관리자는 항상 활성상태
         this.authorities = List.of(new SimpleGrantedAuthority(ROLE_ADMIN));
@@ -49,18 +51,20 @@ public class CustomUserDetails implements UserDetails {
         this.username = member.getLoginId();
         this.password = member.getPassword();
         this.name = member.getName();
+        this.nickname = member.getNickname();
         this.userType = USER_TYPE_PARTNER;
         this.enabled = Member.MemberStatus.ACTIVE.equals(member.getStatus());
         this.authorities = List.of(new SimpleGrantedAuthority(ROLE_PARTNER));
     }
     
     // JWT 토큰을 위한 생성자
-    public CustomUserDetails(Long userId, String username, String userType, 
-                           Collection<? extends GrantedAuthority> authorities) {
+    public CustomUserDetails(Long userId, String username, String userType,
+                             Collection<? extends GrantedAuthority> authorities) {
         this.userId = userId;
         this.username = username;
         this.password = ""; // JWT 인증에서는 비밀번호 불필요
-        this.name = "";
+        this.name = ""; // 기존 로직 호환성을 위해 name은 비워둠
+        this.nickname = ""; // 기존 로직 호환성을 위해 nickname은 비워둠
         this.userType = userType;
         this.enabled = true;
         this.authorities = authorities;

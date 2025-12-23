@@ -1,5 +1,7 @@
 package com.sinsaflower.server.global.controller;
 
+import com.sinsaflower.server.domain.admin.repository.AdminRepository;
+import com.sinsaflower.server.domain.member.repository.MemberRepository;
 import com.sinsaflower.server.global.constants.AuthConstants;
 import com.sinsaflower.server.global.dto.AuthResponse;
 import com.sinsaflower.server.global.dto.LoginRequest;
@@ -12,7 +14,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -37,6 +39,8 @@ import java.util.Map;
 public class AuthController {
     
     private final AuthService authService;
+    private final AdminRepository adminRepository;
+    private final MemberRepository memberRepository;
     
 
     /**
@@ -58,7 +62,8 @@ public class AuthController {
         @Valid LoginRequest request,
         HttpServletResponse httpResponse) {
         log.info("로그인 API 호출: {}", request.getLoginId());
-        
+        log.info("로그인 API 호출: {}", request.getPassword());
+
         AuthResponse response = authService.login(request);
         log.info("로그인 성공: {} ({})", response.getUsername(), response.getUserType());
         
@@ -141,18 +146,30 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(com.sinsaflower.server.global.dto.ApiResponse.unauthorized(AuthConstants.Messages.UNAUTHORIZED_USER));
         }
-        
-        Map<String, Object> userInfo = Map.of(
-            "userId", userDetails.getUserId(),
-            "username", userDetails.getUsername(),
-            "userType", userDetails.getUserType(),
-            "name", userDetails.getName(),
-            "authorities", userDetails.getAuthorities().stream()
+
+        // Map.of()는 불변이므로 수정 가능한 HashMap 사용
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("userId", userDetails.getUserId());
+        userInfo.put("username", userDetails.getUsername());
+        userInfo.put("userType", userDetails.getUserType());
+        userInfo.put("authorities", userDetails.getAuthorities().stream()
                 .map(auth -> auth.getAuthority())
-                .toList(),
-            "isAdmin", userDetails.isAdmin(),
-            "isPartner", userDetails.isPartner()
-        );
+                .toList());
+        userInfo.put("isAdmin", userDetails.isAdmin());
+        userInfo.put("isPartner", userDetails.isPartner());
+
+        // DB에서 최신 name, nickname 정보 조회
+        if (userDetails.isAdmin()) {
+            adminRepository.findById(userDetails.getUserId()).ifPresent(admin -> {
+                userInfo.put("name", admin.getName());
+                userInfo.put("nickname", admin.getName()); // 관리자는 name을 nickname으로 사용
+            });
+        } else if (userDetails.isPartner()) {
+            memberRepository.findById(userDetails.getUserId()).ifPresent(member -> {
+                userInfo.put("name", member.getName());
+                userInfo.put("nickname", member.getNickname());
+            });
+        }
         
         return ResponseEntity.ok(com.sinsaflower.server.global.dto.ApiResponse.success(AuthConstants.Messages.USER_INFO_SUCCESS, userInfo));
     }

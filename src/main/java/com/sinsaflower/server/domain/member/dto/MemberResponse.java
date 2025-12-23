@@ -51,6 +51,9 @@ public class MemberResponse {
     
     @Schema(description = "마지막 로그인 일시", example = "2024-01-15T15:30:00")
     private LocalDateTime lastLoginAt;
+
+    @Schema(description = "사업자 정보")
+    private BusinessProfileResponse businessProfile;
     
     // Entity -> DTO 변환 메서드
     public static MemberResponse from(Member member) {
@@ -63,6 +66,7 @@ public class MemberResponse {
             .status(member.getStatus().getDescription())
             .createdAt(member.getCreatedAt())
             .lastLoginAt(member.getLastLoginAt())
+            .businessProfile(BusinessProfileResponse.from(member.getBusinessProfile()))
             .build();
     }
 } 

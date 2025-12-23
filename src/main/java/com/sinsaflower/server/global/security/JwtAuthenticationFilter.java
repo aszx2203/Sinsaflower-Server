@@ -43,9 +43,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
             if (StringUtils.hasText(jwt) && jwtUtil.validateToken(jwt)) {
                 // 토큰에서 사용자 정보 추출
+                Long userId = jwtUtil.getUserIdFromToken(jwt);
                 String username = jwtUtil.getUsernameFromToken(jwt);
                 String userType = jwtUtil.getUserTypeFromToken(jwt);
-                Long userId = jwtUtil.getUserIdFromToken(jwt);
                 Collection<? extends GrantedAuthority> authorities = jwtUtil.getAuthoritiesFromToken(jwt);
                 
                 // CustomUserDetails 생성
@@ -77,9 +77,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * HTTP 요청에서 JWT 토큰 추출 (Header 또는 Cookie에서)
      */
     private String extractJwtFromRequest(HttpServletRequest request) {
+        log.info("extractJwtFromRequest method");
         // 1. Authorization Header에서 토큰 추출 시도
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX) && !bearerToken.substring(BEARER_PREFIX.length()).equalsIgnoreCase("undefined")) {
             log.debug("JWT 토큰을 Authorization Header에서 추출");
             return bearerToken.substring(BEARER_PREFIX.length());
         }
@@ -90,7 +91,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             for (Cookie cookie : cookies) {
                 if (JWT_COOKIE_NAME.equals(cookie.getName())) {
                     String cookieValue = cookie.getValue();
-                    if (StringUtils.hasText(cookieValue)) {
+                    if (StringUtils.hasText(cookieValue) && !cookieValue.equalsIgnoreCase("undefined")) {
                         log.debug("JWT 토큰을 Cookie에서 추출");
                         return cookieValue;
                     }
@@ -108,11 +109,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        
+        log.info("인증 경로 {}", path);
+        if (path.startsWith("/api/auth/me")) {
+            return false;
+        }
         // 인증이 필요없는 경로들
         return path.startsWith("/api/auth/") ||
                path.startsWith("/api/members/validation/") ||
-               path.startsWith("/api/partner-members/signup") ||
+               path.startsWith("/api/members/signup") ||
                path.startsWith("/actuator/") ||
                // SpringDoc OpenAPI 2.8.0 호환 경로들
                path.startsWith("/swagger-ui/") ||

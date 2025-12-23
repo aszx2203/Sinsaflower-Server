@@ -29,9 +29,6 @@ public interface AdminRepository extends JpaRepository<Admin, Long> {
     
     Page<Admin> findByStatus(AdminStatus status, Pageable pageable);
     
-    // 역할별 조회
-    List<Admin> findByRole(String role);
-    
     // 삭제되지 않은 관리자만 조회
     @Query("SELECT a FROM Admin a WHERE a.isDeleted = false ORDER BY a.createdAt DESC")
     List<Admin> findAllActive();
