@@ -103,7 +103,7 @@ public class MemberRegionPriceService {
                                     )
                                     .map(p -> MemberProductPriceResponse.builder()
                                             .categoryName(p.getCategoryName())
-                                            .price(p.getPrice().intValue())
+                                            .price(p.getPrice())
                                             .isAvailable(p.getIsAvailable())
                                             .build()
                                     )

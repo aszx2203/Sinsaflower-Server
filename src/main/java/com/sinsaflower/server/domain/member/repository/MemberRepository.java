@@ -1,5 +1,6 @@
 package com.sinsaflower.server.domain.member.repository;
 
+import com.sinsaflower.server.domain.member.dto.MemberSearchBaseDto;
 import com.sinsaflower.server.domain.member.entity.Member;
 import com.sinsaflower.server.domain.member.entity.Member.MemberStatus;
 import org.springframework.data.domain.Page;
@@ -102,23 +103,33 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
            "WHERE CAST(hp.productType AS string) LIKE %:productName% AND m.status = 'ACTIVE' AND m.isDeleted = false " +
            "ORDER BY m.createdAt DESC")
     Page<Member> findByHandlingProductName(@Param("productName") String productName, Pageable pageable);
-    
+
     // 복합 검색 쿼리들
-    @Query("SELECT DISTINCT m FROM Member m " +
-           "LEFT JOIN m.activityRegions ar " +
-           "LEFT JOIN m.handlingProducts hp " +
-           "WHERE (:name IS NULL OR m.name LIKE %:name%) " +
-           "AND (:sido IS NULL OR ar.sido = :sido) " +
-           "AND (:sigungu IS NULL OR ar.sigungu = :sigungu) " +
-           "AND (:productName IS NULL OR CAST(hp.productType AS string) LIKE %:productName%) " +
-           "AND m.status = 'ACTIVE' AND m.isDeleted = false " +
-           "ORDER BY m.createdAt DESC")
-    Page<Member> findByCombinedSearch(
-        @Param("name") String name,
-        @Param("sido") String sido,
-        @Param("sigungu") String sigungu,
-        @Param("productName") String productName,
-        Pageable pageable);
+    @Query("""
+        SELECT new com.sinsaflower.server.domain.member.dto.MemberSearchBaseDto(
+            m.id,
+            m.name,
+            m.mobile,
+            CONCAT(ar.sido, ' ', ar.sigungu),
+            bp.memo,
+            m.rank
+        )
+        FROM Member m
+        JOIN m.activityRegions ar
+        LEFT JOIN m.businessProfile bp
+        WHERE m.status = com.sinsaflower.server.domain.member.entity.Member.MemberStatus.ACTIVE
+        AND m.isDeleted = false
+        AND (:name IS NULL OR m.name LIKE %:name%)
+        AND (:sido IS NULL OR ar.sido = :sido)
+        AND (:sigungu IS NULL OR ar.sigungu = :sigungu)
+        ORDER BY m.createdAt DESC
+    """)
+    Page<MemberSearchBaseDto> findByCombinedSearch(
+            @Param("name") String name,
+            @Param("sido") String sido,
+            @Param("sigungu") String sigungu,
+            Pageable pageable
+    );
     
     // 지역별 회원 수 통계
     @Query("SELECT ar.sido, COUNT(DISTINCT m) FROM Member m " +

@@ -2,6 +2,7 @@ package com.sinsaflower.server.domain.member.controller;
 
 import com.sinsaflower.server.domain.member.constants.MemberConstants;
 import com.sinsaflower.server.domain.member.dto.MemberResponse;
+import com.sinsaflower.server.domain.member.dto.MemberSearchResponse;
 import com.sinsaflower.server.domain.member.dto.MemberSignupRequest;
 import com.sinsaflower.server.domain.member.service.MemberService;
 import com.sinsaflower.server.global.security.CustomUserDetails;
@@ -144,16 +145,19 @@ public class MemberController {
      */
     @GetMapping("/search/combined")
     @Operation(summary = "복합 검색", description = "화환명과 지역을 조합하여 회원을 검색합니다.")
-    public ResponseEntity<com.sinsaflower.server.global.dto.ApiResponse<Page<MemberResponse>>> searchCombined(
+    public ResponseEntity<com.sinsaflower.server.global.dto.ApiResponse<Page<MemberSearchResponse>>> searchCombined(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String sido,
             @RequestParam(required = false) String sigungu,
-            @RequestParam(required = false) String productName,
             Pageable pageable) {
-        log.info("복합 검색 요청: name={}, sido={}, sigungu={}, product={}", name, sido, sigungu, productName);
+        log.info("복합 검색 요청: name={}, sido={}, sigungu={}, product={}", name, sido, sigungu);
         
-        Page<MemberResponse> response = memberService.searchMembersCombined(name, sido, sigungu, productName, pageable);
-        return ResponseEntity.ok(com.sinsaflower.server.global.dto.ApiResponse.success(MemberConstants.Messages.MEMBER_LIST_RETRIEVED, response));
+        return ResponseEntity.ok(
+                com.sinsaflower.server.global.dto.ApiResponse.success(
+                        MemberConstants.Messages.MEMBER_LIST_RETRIEVED,
+                        memberService.searchMembersCombined(name, sido, sigungu, pageable)
+                )
+        );
     }
 
     /**
